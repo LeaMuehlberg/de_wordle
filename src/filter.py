@@ -1,60 +1,42 @@
 import requests
 
-words = ["gehen", "löwe", "maus", "tragen"]
-
 def is_german(word):
 	url = "https://de.wiktionary.org/w/api.php"
 
 	params = {
-    	"action": "parse",
-    	"page": word,
-    	"prop": "wikitext",
-    	"format": "json"
+		"action": "query",
+		"prop": "revisions",
+		"rvprop": "content",
+		"rvslots": "main",
+		"titles": word,
+		"format": "json",
 	}
 
 	headers = {
-    	"User-Agent": "WordleBot/1.0"
+    	"User-Agent": "DeWordle/1.0 (contact: muehlberg.lea@gmail.com)"
 	}
 
 	response = requests.get(url, params=params, headers=headers)
 	data = response.json()
 
-	if "parse" in data:
-		text = data["parse"]["wikitext"]["*"]
-
-		if f"== {word} ({{{{Sprache|Deutsch}}}}) ==" in text:
-			return True
-		else:
-			return False
-	else:
-		params = {
-    		"action": "query",
-    		"list": "search",
-    		"srsearch": word,
-    		"format": "json"
-		}
-		response = requests.get(url, params=params, headers=headers)
-		data = response.json()
+	pages = data["query"]["pages"]
+	for page in pages.values():
 		
-		if len(data["query"]["search"]) > 0:
-			x = data["query"]["search"][0]["title"]
-
-			params = {
-    			"action": "parse",
-    			"page": x,
-    			"prop": "wikitext",
-    			"format": "json"
-			}
-			response = requests.get(url, params=params, headers=headers)
-			data = response.json()
-			text = data["parse"]["wikitext"]["*"]
-			if f"== {x} ({{{{Sprache|Deutsch}}}}) ==" in text:
-				return True
-			else:
-				return False
-
-		else:
+		if "revisions" not in page:
 			return False
 
+		text = page["revisions"][0]["slots"]["main"]["*"]
+		return "{{Sprache|Deutsch}}" in text
+	return False
 
-print(is_german("löwe"))
+
+german_words = []
+
+with open("my_words.txt", "r") as my_file:
+	for line in my_file:
+		word = line.strip()
+		if is_german(word):
+			german_words.append(word)
+
+for word in german_words:
+	print(word)
